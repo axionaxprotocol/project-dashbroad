@@ -79,6 +79,19 @@ export const DataTable: React.FC<DataTableProps> = ({ projects, onRowClick }) =>
     </span>
   );
 
+  const getStatusBadgeStyle = (status: string) => {
+    switch (status) {
+      case 'เปิดใบสั่งซื้อ/เซ็นสัญญา':
+        return 'bg-green-100 text-green-800 border border-green-200';
+      case 'ส่งพิจารณาแล้ว':
+        return 'bg-blue-100 text-blue-800 border border-blue-200';
+      case 'ยังไม่ได้ส่งเอกสาร':
+        return 'bg-amber-100 text-amber-800 border border-amber-200';
+      default:
+        return 'bg-slate-100 text-slate-700 border border-slate-200';
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -111,34 +124,40 @@ export const DataTable: React.FC<DataTableProps> = ({ projects, onRowClick }) =>
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-[#f8fafc] dark:bg-slate-900/50">
             <tr>
-              <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('projectName')}>
-                <div className="flex items-center gap-1">
+              <th scope="col" className="px-3 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:bg-slate-100 transition-colors min-w-[200px]" onClick={() => handleSort('projectName')}>
+                <div className="flex items-center gap-1.5">
                   <span>Project & Customer</span>
-                  <ArrowUpDown className="w-3 h-3" />
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
                 </div>
               </th>
-              <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wider whitespace-nowrap">
+              <th scope="col" className="px-3 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
+                Status
+              </th>
+              <th scope="col" className="px-3 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
                 Quotation No.
               </th>
-              <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wider whitespace-nowrap">
+              <th scope="col" className="px-3 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
                 Team
               </th>
-              <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => handleSort('orderValue')}>
-                <div className="flex items-center gap-1">
+              <th scope="col" className="px-3 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
+                Engineer
+              </th>
+              <th scope="col" className="px-3 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => handleSort('orderValue')}>
+                <div className="flex items-center justify-end gap-1.5">
                   <span>Order Value</span>
-                  <ArrowUpDown className="w-3 h-3" />
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
                 </div>
               </th>
-              <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wider whitespace-nowrap">
+              <th scope="col" className="px-3 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
                 Billing
               </th>
-              <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('progress')}>
-                <div className="flex items-center gap-1">
+              <th scope="col" className="px-3 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:bg-slate-100 transition-colors w-[100px]" onClick={() => handleSort('progress')}>
+                <div className="flex items-center gap-1.5">
                   <span>Progress</span>
-                  <ArrowUpDown className="w-3 h-3" />
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
                 </div>
               </th>
-              <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+              <th scope="col" className="px-3 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
                 Deadline
               </th>
             </tr>
@@ -149,51 +168,59 @@ export const DataTable: React.FC<DataTableProps> = ({ projects, onRowClick }) =>
                 const dlStatus = getDeadlineStatus(project.deadline, project.progress);
                 return (
                 <tr key={project.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" onClick={() => onRowClick?.(project)}>
-                  <td className="px-3 py-2.5 max-w-[220px]">
-                    <div className="font-semibold text-slate-900 dark:text-slate-100 truncate" title={project.projectName}>{project.projectName}</div>
-                    <div className="text-slate-500 dark:text-slate-400 text-xs truncate" title={project.customer}>{project.customer}</div>
+                  <td className="px-3 py-3">
+                    <div className="font-medium text-sm text-slate-900 dark:text-slate-100 truncate max-w-[250px]" title={project.projectName}>{project.projectName}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[250px]" title={project.customer}>{project.customer}</div>
                   </td>
-                  <td className="px-3 py-2.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{project.quotationNumber}</td>
-                  <td className="px-3 py-2.5 text-slate-800 dark:text-slate-200 font-medium whitespace-nowrap">{project.installTeam}</td>
-                  <td className="px-3 py-2.5 font-semibold text-blue-700 whitespace-nowrap">{formatCurrency(project.orderValue)}</td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center">
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getStatusBadgeStyle(project.status)}`}>
+                      {project.status}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">{project.quotationNumber}</td>
+                  <td className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">{project.installTeam}</td>
+                  <td className="px-3 py-3 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">{project.engineer}</td>
+                  <td className="px-3 py-3 text-right whitespace-nowrap">
+                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">{formatCurrency(project.orderValue)}</span>
+                  </td>
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <div className="flex items-center gap-0.5">
                       {renderBillingBadge(1, project.billing.phase1.paid)}
                       {renderBillingBadge(2, project.billing.phase2.paid)}
                       {renderBillingBadge(3, project.billing.phase3.paid)}
                       {renderBillingBadge(4, project.billing.phase4.paid)}
                     </div>
                   </td>
-                  <td className="px-3 py-2.5 w-32">
-                    <div className="flex items-center justify-between text-xs text-slate-600 mb-1">
-                      <span>{project.progress}%</span>
+                  <td className="px-3 py-3 w-[100px]">
+                    <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
+                      <span className="font-medium">{project.progress}%</span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-slate-600 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full ${project.progress === 100 ? 'bg-green-500' : 'bg-blue-600'}`} 
+                      <div
+                        className={`h-2 rounded-full transition-all ${project.progress === 100 ? 'bg-green-500' : 'bg-blue-600'}`}
                         style={{ width: `${project.progress}%` }}
                       ></div>
                     </div>
                   </td>
-                  <td className="px-3 py-2.5 whitespace-nowrap">
+                  <td className="px-3 py-3 whitespace-nowrap">
                     {project.deadline && project.deadline.trim() !== '' ? (
-                      <span className={`inline-flex items-center gap-1 ${
-                        dlStatus === 'overdue' ? 'text-red-600 font-semibold' :
-                        dlStatus === 'soon' ? 'text-amber-600 font-medium' :
-                        'text-slate-600'
+                      <span className={`inline-flex items-center gap-1.5 text-xs ${
+                        dlStatus === 'overdue' ? 'text-red-600 dark:text-red-400 font-semibold' :
+                        dlStatus === 'soon' ? 'text-amber-600 dark:text-amber-400 font-medium' :
+                        'text-slate-600 dark:text-slate-400'
                       }`}>
-                        {dlStatus !== 'normal' && <AlertTriangle className="w-3.5 h-3.5" />}
-                        {new Date(project.deadline).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        {dlStatus === 'overdue' && <span className="text-[10px] ml-1 bg-red-100 text-red-700 px-1.5 py-0.5 rounded">เลยกำหนด</span>}
-                        {dlStatus === 'soon' && <span className="text-[10px] ml-1 bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">ใกล้ครบกำหนด</span>}
+                        {dlStatus !== 'normal' && <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />}
+                        <span>{new Date(project.deadline).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        {dlStatus === 'overdue' && <span className="text-[10px] ml-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-1.5 py-0.5 rounded">เลยกำหนด</span>}
+                        {dlStatus === 'soon' && <span className="text-[10px] ml-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded">ใกล้ครบกำหนด</span>}
                       </span>
-                    ) : '-'}
+                    ) : <span className="text-sm text-slate-400 dark:text-slate-500">-</span>}
                   </td>
                 </tr>
               );})
             ) : (
               <tr>
-                 <td colSpan={7} className="px-3 py-8 text-center text-slate-500">
+                 <td colSpan={9} className="px-3 py-8 text-center text-slate-500 dark:text-slate-400">
                     No projects found matching the criteria
                  </td>
               </tr>
@@ -208,7 +235,7 @@ export const DataTable: React.FC<DataTableProps> = ({ projects, onRowClick }) =>
                 <td className="px-3 py-2.5 font-bold text-blue-700 whitespace-nowrap">
                   {formatCurrency(filteredAndSorted.reduce((sum, p) => sum + p.orderValue, 0))}
                 </td>
-                <td colSpan={3}></td>
+                <td colSpan={5}></td>
               </tr>
             </tfoot>
           )}

@@ -35,6 +35,19 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ projects }) => {
     return Object.values(teams);
   }, [projects]);
 
+  // 3. Engineer Performance: Contract Value per Engineer
+  const engineerData = useMemo(() => {
+    const engineers: Record<string, { name: string, totalValue: number, projectCount: number }> = {};
+    projects.forEach(p => {
+      if (!engineers[p.engineer]) {
+        engineers[p.engineer] = { name: p.engineer, totalValue: 0, projectCount: 0 };
+      }
+      engineers[p.engineer].totalValue += p.orderValue;
+      engineers[p.engineer].projectCount += 1;
+    });
+    return Object.values(engineers).sort((a, b) => b.totalValue - a.totalValue);
+  }, [projects]);
+
   // 3. Line Chart: Monthly Revenue Trend (อ้างอิง orderDate = วันใบเสนอราคา)
   const revenueData = useMemo(() => {
     const months: Record<string, number> = {};
@@ -67,10 +80,22 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ projects }) => {
     return filled;
   }, [projects]);
 
+  // 4. Billing Status: Collected vs Pending
+  const billingData = useMemo(() => {
+    const collected = projects.reduce((sum, p) => {
+      return sum + Object.values(p.billing).filter(b => b.paid).reduce((s, b) => s + b.amount, 0);
+    }, 0);
+    const pending = projects.reduce((sum, p) => sum + p.orderValue, 0) - collected;
+    return [
+      { name: 'เก็บเงินแล้ว', value: collected, color: '#10b981' },
+      { name: 'ค้างเบิก', value: pending, color: '#f43f5e' }
+    ].filter(d => d.value > 0);
+  }, [projects]);
+
   const formatCurrency = formatCurrencyCompact;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
       <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 h-80 flex flex-col">
         <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Project Status Distribution</h3>
         <div className="flex-1 min-h-0 border border-slate-100 dark:border-slate-700 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 p-1.5">
@@ -136,6 +161,73 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ projects }) => {
            ) : (
              <div className="flex items-center justify-center h-full text-slate-400 text-sm">No data available</div>
            )}
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 h-80 flex flex-col">
+        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Billing Status</h3>
+        <div className="flex-1 min-h-0 border border-slate-100 dark:border-slate-700 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 p-1.5">
+          {billingData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={billingData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={70}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name}: ${percent ? (percent * 100).toFixed(0) : 0}%`}
+                  labelLine={false}
+                >
+                  {billingData.map((entry, index) => (
+                    <Cell key={`cell-billing-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <PieTooltip formatter={(value: any) => formatCurrency(Number(value))} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full text-slate-400 text-sm">No data available</div>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-2 mt-2 px-2">
+          {billingData.map(d => (
+            <div key={d.name} className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }}></span>
+              <div className="flex flex-col leading-tight">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">{d.name}</span>
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(d.value)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 h-80 flex flex-col">
+        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Engineer Performance</h3>
+        <div className="flex-1 min-h-0 border border-slate-100 dark:border-slate-700 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 p-1.5">
+          {engineerData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={engineerData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                <XAxis type="number" tickFormatter={formatCurrency} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#64748b', fontWeight: 500 }} axisLine={false} tickLine={false} width={50} />
+                <BarTooltip formatter={(value: any) => formatCurrency(Number(value))} />
+                <Bar dataKey="totalValue" name="Contract Value" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full text-slate-400 text-sm">No data available</div>
+          )}
+        </div>
+        <div className="grid grid-cols-3 gap-x-2 gap-y-1 mt-2 px-1">
+          {engineerData.slice(0, 6).map(d => (
+            <div key={d.name} className="flex flex-col items-center leading-tight">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">{d.name}</span>
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{d.projectCount} โครงการ</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

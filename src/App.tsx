@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Header } from './components/layout/Header';
+import { QRCodeModal } from './components/ui/QRCodeModal';
 import type { Filters } from './components/layout/Header';
 import { KPICards } from './components/dashboard/KPICards';
 import { ChartsSection } from './components/dashboard/ChartsSection';
@@ -16,7 +17,9 @@ function App() {
     status: '',
     engineer: '',
     team: '',
-    activeOnly: false
+    activeOnly: false,
+    dateFrom: '',
+    dateTo: ''
   });
 
   const [projects, setProjects] = useState<ProjectData[]>([]);
@@ -24,6 +27,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
+  const [showQRModal, setShowQRModal] = useState(false);
 
   const addToast = useCallback((type: 'success' | 'error', text: string) => {
     setToasts(prev => [...prev, { id: Date.now(), type, text }]);
@@ -79,7 +83,21 @@ function App() {
           return false;
         }
       }
-      
+
+      // Date range filter
+      if (filters.dateFrom || filters.dateTo) {
+        const orderDate = new Date(project.orderDate);
+        if (filters.dateFrom) {
+          const fromDate = new Date(filters.dateFrom);
+          if (orderDate < fromDate) return false;
+        }
+        if (filters.dateTo) {
+          const toDate = new Date(filters.dateTo);
+          toDate.setHours(23, 59, 59, 999); // Include the entire end date
+          if (orderDate > toDate) return false;
+        }
+      }
+
       return true;
     });
   }, [projects, filters]);
@@ -104,6 +122,7 @@ function App() {
         onFilterChange={setFilters} 
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
+        onQRClick={() => setShowQRModal(true)}
       />
       
       <main className={`max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5 transition-opacity duration-300 ${isRefreshing ? 'opacity-50' : 'opacity-100'}`}>
@@ -117,8 +136,8 @@ function App() {
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {[...Array(3)].map((_, i) => (
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+              {[...Array(5)].map((_, i) => (
                 <div key={i} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 h-80"></div>
               ))}
             </div>
@@ -136,6 +155,7 @@ function App() {
       </main>
 
       <ProjectModal project={selectedProject} onClose={() => setSelectedProject(null)} />
+      <QRCodeModal isOpen={showQRModal} onClose={() => setShowQRModal(false)} />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
