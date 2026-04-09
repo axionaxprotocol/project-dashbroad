@@ -137,7 +137,12 @@ function extractDataWithGemini(text) {
     const result = JSON.parse(response.getContentText());
     if (result.candidates && result.candidates.length > 0) {
       const jsonString = result.candidates[0].content.parts[0].text;
-      return JSON.parse(jsonString);
+      try {
+        return JSON.parse(jsonString);
+      } catch (parseError) {
+        console.error("JSON Parse Error: " + parseError);
+        console.error("Invalid JSON from Gemini: " + jsonString);
+      }
     }
   } catch (error) {
     console.error("Gemini Error: " + error);
