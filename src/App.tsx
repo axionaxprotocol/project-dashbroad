@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Header } from './components/layout/Header';
 import { QRCodeModal } from './components/ui/QRCodeModal';
 import type { Filters } from './components/layout/Header';
@@ -6,10 +6,12 @@ import { KPICards } from './components/dashboard/KPICards';
 import { ChartsSection } from './components/dashboard/ChartsSection';
 import { DataTable } from './components/dashboard/DataTable';
 import { ToastContainer } from './components/ui/Toast';
-import type { ToastMessage } from './components/ui/Toast';
 import { ProjectModal } from './components/ui/ProjectModal';
-import { fetchProjects } from './services/api';
 import type { ProjectData } from './types';
+import { useProjects } from './hooks/useProjects';
+import { useProjectFilter } from './hooks/useProjectFilter';
+import { useToast } from './hooks/useToast';
+import { KPI_SCROLL_OFFSET } from './constants';
 
 function App() {
   const [filters, setFilters] = useState<Filters>({
@@ -22,97 +24,32 @@ function App() {
     dateTo: ''
   });
 
-  const [projects, setProjects] = useState<ProjectData[]>([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
   const [showQRModal, setShowQRModal] = useState(false);
 
-  const addToast = useCallback((type: 'success' | 'error', text: string) => {
-    setToasts(prev => [...prev, { id: Date.now(), type, text }]);
-  }, []);
+  const { projects, isRefreshing, isLoading, loadData } = useProjects();
+  const { toasts, addToast, dismissToast } = useToast();
+  const filteredProjects = useProjectFilter(projects, filters);
 
-  const dismissToast = useCallback((id: number) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  }, []);
-
-  const loadData = useCallback(async (isBackground = false) => {
+  const handleRefresh = useCallback(async () => {
     try {
-      if (!isBackground) setIsRefreshing(true);
-      const data = await fetchProjects();
-      setProjects(data);
-      if (!isBackground) addToast('success', `โหลดข้อมูลสำเร็จ (${data.length} โครงการ)`);
+      await loadData();
+      addToast('success', `โหลดข้อมูลสำเร็จ (${projects.length} โครงการ)`);
     } catch (error) {
-      console.error("Error loading dashboard data:", error);
-      if (!isBackground) addToast('error', 'โหลดข้อมูลล้มเหลว กรุณาลองใหม่');
-    } finally {
-      if (!isBackground) setIsRefreshing(false);
-      setIsLoading(false);
+      addToast('error', 'โหลดข้อมูลล้มเหลว กรุณาลองใหม่');
     }
-  }, [addToast]);
+  }, [loadData, addToast, projects.length]);
 
-  useEffect(() => {
-    // โหลดข้อมูลครั้งแรก
-    loadData(false);
 
-    // ตั้งเวลาโหลดข้อมูลอัตโนมัติทุกๆ 5 นาที (300000 ms) แบบไม่กะพริบหน้าจอ
-    const intervalId = setInterval(() => {
-      loadData(true);
-    }, 300000);
-
-    // ลบ interval ทิ้งเมื่อปิดหน้าต่าง เพื่อกัน memory leak
-    return () => clearInterval(intervalId);
-  }, [loadData]);
-
-  const handleRefresh = () => {
-    loadData();
-  };
-
-  const filteredProjects = useMemo(() => {
-    return projects.filter(project => {
-      // Cast project values to string for safe comparison with string filters
-      if (filters.year && String(project.year) !== filters.year) return false;
-      if (filters.status && String(project.status) !== filters.status) return false;
-      if (filters.engineer && String(project.engineer) !== filters.engineer) return false;
-      if (filters.team && String(project.installTeam) !== filters.team) return false;
-      
-      // Active Progress logic (Progress > 0 and < 100)
-      if (filters.activeOnly) {
-        if (project.progress <= 0 || project.progress >= 100) {
-          return false;
-        }
-      }
-
-      // Date range filter
-      if (filters.dateFrom || filters.dateTo) {
-        const orderDate = new Date(project.orderDate);
-        if (filters.dateFrom) {
-          const fromDate = new Date(filters.dateFrom);
-          if (orderDate < fromDate) return false;
-        }
-        if (filters.dateTo) {
-          const toDate = new Date(filters.dateTo);
-          toDate.setHours(23, 59, 59, 999); // Include the entire end date
-          if (orderDate > toDate) return false;
-        }
-      }
-
-      return true;
-    });
-  }, [projects, filters]);
-
-  const handleKpiClick = (kpiId: string) => {
+  const handleKpiClick = useCallback((kpiId: string) => {
     if (kpiId === 'active') {
-      // Toggle the activeOnly filter when clicking the KPI card
       setFilters(prev => ({
         ...prev,
         activeOnly: !prev.activeOnly
       }));
-      // Scroll slightly down to show the table
-      window.scrollTo({ top: 400, behavior: 'smooth' });
+      window.scrollTo({ top: KPI_SCROLL_OFFSET, behavior: 'smooth' });
     }
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans transition-colors duration-300">

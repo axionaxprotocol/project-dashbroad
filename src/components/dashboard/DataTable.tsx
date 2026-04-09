@@ -1,77 +1,28 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import type { ProjectData } from '../../types';
 import { Search, ArrowUpDown, ChevronLeft, ChevronRight, AlertTriangle, Download } from 'lucide-react';
 import { formatCurrency } from '../../utils/format';
 import { exportProjectsCsv } from '../../utils/exportCsv';
+import { getDeadlineStatus, getStatusBadgeStyle } from '../../utils/statusHelpers';
+import { useTableSort } from '../../hooks/useTableSort';
+import { ROWS_PER_PAGE } from '../../constants';
 
 interface DataTableProps {
   projects: ProjectData[];
   onRowClick?: (project: ProjectData) => void;
 }
 
-type SortField = 'projectName' | 'orderValue' | 'progress';
-type SortOrder = 'asc' | 'desc';
-
-const ROWS_PER_PAGE = 10;
-
-function getDeadlineStatus(deadline?: string, progress?: number): 'overdue' | 'soon' | 'normal' {
-  if (!deadline || deadline.trim() === '' || progress === 100) return 'normal';
-  const now = new Date();
-  const dl = new Date(deadline);
-  const diffDays = Math.ceil((dl.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays < 0) return 'overdue';
-  if (diffDays <= 14) return 'soon';
-  return 'normal';
-}
 
 export const DataTable: React.FC<DataTableProps> = ({ projects, onRowClick }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<SortField>('projectName');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const filteredAndSorted = useMemo(() => {
-    // 1. Filter by search
-    let filtered = projects.filter(p => 
-      p.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.quotationNumber.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    // 2. Sort
-    filtered.sort((a, b) => {
-      let valA = a[sortField];
-      let valB = b[sortField];
-      
-      if (typeof valA === 'string' && typeof valB === 'string') {
-        const comparison = valA.localeCompare(valB);
-        return sortOrder === 'asc' ? comparison : -comparison;
-      }
-      
-      if (typeof valA === 'number' && typeof valB === 'number') {
-        return sortOrder === 'asc' ? valA - valB : valB - valA;
-      }
-      return 0;
-    });
-
-    return filtered;
-  }, [projects, searchTerm, sortField, sortOrder]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / ROWS_PER_PAGE));
-  const safeCurrentPage = Math.min(currentPage, totalPages);
-  const paginatedData = filteredAndSorted.slice(
-    (safeCurrentPage - 1) * ROWS_PER_PAGE,
-    safeCurrentPage * ROWS_PER_PAGE
-  );
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('asc');
-    }
-  };
+  const {
+    totalPages,
+    paginatedData,
+    filteredAndSorted,
+    safeCurrentPage,
+    handleSort,
+    setCurrentPage,
+  } = useTableSort(projects, searchTerm);
 
   const renderBillingBadge = (phase: number, paid: boolean) => (
     <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium mr-1 ${paid ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}`}>
@@ -79,18 +30,6 @@ export const DataTable: React.FC<DataTableProps> = ({ projects, onRowClick }) =>
     </span>
   );
 
-  const getStatusBadgeStyle = (status: string) => {
-    switch (status) {
-      case 'เปิดใบสั่งซื้อ/เซ็นสัญญา':
-        return 'bg-green-100 text-green-800 border border-green-200';
-      case 'ส่งพิจารณาแล้ว':
-        return 'bg-blue-100 text-blue-800 border border-blue-200';
-      case 'ยังไม่ได้ส่งเอกสาร':
-        return 'bg-amber-100 text-amber-800 border border-amber-200';
-      default:
-        return 'bg-slate-100 text-slate-700 border border-slate-200';
-    }
-  };
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
